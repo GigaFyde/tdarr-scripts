@@ -1,12 +1,12 @@
 module.exports.details = function details() {
     return {
-        id: "Tdarr_Plugin_AAAA_GigaFyde_convertGPU",
+        id: "Tdarr_Plugin_gigafyde_convertGPU",
         Stage: "Pre-processing",
         Name: "Convert to H264 NVENC",
         Type: "Video",
         Operation: "Transcode",
         Description: `Converts files to H264 using NVENC and applies a tag so it doesn't process again later`,
-        Version: "0.01",
+        Version: "1.00",
         Link:
             "",
         Tags: "pre-processing,ffmpeg",
