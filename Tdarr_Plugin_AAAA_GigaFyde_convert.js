@@ -1,12 +1,12 @@
 module.exports.details = function details() {
     return {
-        id: "Tdarr_Plugin_AAAA_GigaFyde_convert",
+        id: "Tdarr_Plugin_gigafyde_convert",
         Stage: "Pre-processing",
-        Name: "Convert to H264",
+        Name: "Convert to H264 using cpu",
         Type: "Video",
         Operation: "Transcode",
-        Description: `Test Plugin`,
-        Version: "0.01",
+        Description: `Converts files to H264 using cpu and applies a tag so it doesn't process again later`,
+        Version: "1.0",
         Link:
             "",
         Tags: "pre-processing,ffmpeg",
@@ -23,41 +23,23 @@ module.exports.plugin = function plugin(file, librarySettings, inputs) {
         reQueueAfter: false,
         infoLog: "",
     };
-    if (file.file_size < 1000 && "video_codec_name" !== "h264") {
+    if (file.file_size < 1000 && file.video_codec_name == "h264") {
+        response.infoLog += 'File is already below 1gb and in h264.'
+        response.processFile = false
+        return response
+    }
+    if ('Copyright' in file.mediaInfo.track[0]) {
+        if (file.mediaInfo.track[0].Copyright == 'giga')
+        response.infoLog += 'File has already been proccessed.'
+        response.processFile = false
+        return response
+    } else {
         response.FFmpegMode = true;
         response.processFile = true;
-        response.preset = `, -c:a copy -c:s srt -c:v libx264 -vsync 0 -crf 21 -metadata:s:v:0 tdarrprocessed=yes -max_muxing_queue_size 9999`;
+        response.preset = `, -c:a copy -c:s srt -c:v libx264 -vsync 0 -crf 21 -metadata copyright=giga -max_muxing_queue_size 9999`;
         response.container = ".mkv";
-
-        response.reQueueAfter = true;
+        response.reQueueAfter = false;
         response.infoLog += `☒File hasn't yet been processed! \n`;
         return response;
     }
-    for (let j = 0; j < file.ffProbeData.streams.length; j++) {
-        if (typeof file.ffProbeData.streams[0].tags === undefined) {
-            response.FFmpegMode = true;
-            response.processFile = true;
-            response.preset = `, -c:a copy -c:s srt -c:v libx264 -vsync 0 -crf 21 -metadata:s:v:0 tdarrprocessed=yes -max_muxing_queue_size 9999`;
-            response.container = ".mkv";
-
-            response.reQueueAfter = true;
-            response.infoLog += `☒File hasn't yet been processed! \n`;
-            return response;
-        }
-        if ("TDARRPROCESSED" in file.ffProbeData.streams[0].tags) {
-            response.processFile = false;
-            response.infoLog += `☑File is already processed! \n`;
-            return response;
-        } else {
-            response.FFmpegMode = true;
-            response.processFile = true;
-            response.preset = `, -c:a copy -c:s srt -c:v libx264 -vsync 0 -crf 21 -metadata:s:v:0 tdarrprocessed=yes -max_muxing_queue_size 9999`;
-            response.container = ".mkv";
-            response.reQueueAfter = true;
-            response.infoLog += `☒File hasn't yet been processed! \n`;
-            return response;
-        }
-    }
 };
-
-
