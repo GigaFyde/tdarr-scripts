@@ -23,8 +23,34 @@ module.exports.plugin = function plugin(file, librarySettings, inputs) {
         reQueueAfter: false,
         infoLog: "",
     };
-    if (file.file_size < 1000 && file.video_codec_name == "h264") {
-        response.infoLog += 'File is already below 1gb and in h264.'
+    if (file.video_codec_name == 'h263') {
+        response.preset = `-c:v h263_cuvid`
+    } else if (file.video_codec_name == 'h264') {
+        if (file.ffProbeData.streams[0].profile != 'High 10') {
+          //Remove HW Decoding for High 10 Profile
+        response.preset = `-c:v h264_cuvid`
+        }
+    } else if (file.video_codec_name == 'mjpeg') {
+        response.preset = `c:v mjpeg_cuvid`
+    } else if (file.video_codec_name == 'mpeg1') {
+        response.preset = `-c:v mpeg1_cuvid`
+    } else if (file.video_codec_name == 'mpeg2') {
+        response.preset = `-c:v mpeg2_cuvid`
+    }
+      // skipping this one because it's empty
+      //  else if (file.video_codec_name == 'mpeg4') {
+      //    response.preset = ``
+      //  }
+    else if (file.video_codec_name == 'vc1') {
+        response.preset = `-c:v vc1_cuvid`
+    } else if (file.video_codec_name == 'vp8') {
+        response.preset = `-c:v vp8_cuvid`
+    } else if (file.video_codec_name == 'vp9') {
+        response.preset = `-c:v vp9_cuvid`
+    }
+    
+    if (file.file_size < 2500 && file.video_codec_name == "h264") {
+        response.infoLog += 'File is already below 2.5gb and in h264.'
         response.processFile = false
         return response
     }
@@ -33,13 +59,19 @@ module.exports.plugin = function plugin(file, librarySettings, inputs) {
         response.infoLog += 'File has already been proccessed.'
         response.processFile = false
         return response
-    } else {
-        response.FFmpegMode = true;
-        response.processFile = true;
-        response.preset = `-hwaccel cuda, -c:a copy -c:s srt -c:v h264_nvenc -vsync 0 -crf 21 -metadata copyright=giga -max_muxing_queue_size 9999`;
-        response.container = ".mkv";
-        response.reQueueAfter = false;
-        response.infoLog += `☒File hasn't yet been processed! \n`;
-        return response;
     }
+    for (var i = 0; i < file.ffProbeData.streams.length; i++) {
+        if (file.ffProbeData.streams[i].codec_type.toLowerCase() == 'video') {
+            if (!['mjpeg', 'png'].includes(file.ffProbeData.streams[i].codec_name.toLowerCase())) { 
+                response.preset += `, -map 0:v:${i} -c:v:${i} h264_nvenc -pixel_format yuv420p  -map 0:a -c:a copy -map 0:s? -c:s srt -metadata copyright=giga -max_muxing_queue_size 9999`;
+                break
+            }
+        }
+    }
+    response.FFmpegMode = true;
+    response.processFile = true;
+    response.container = ".mkv";
+    response.reQueueAfter = false;
+    response.infoLog += `☒File hasn't yet been processed! \n`;
+    return response;
 };
